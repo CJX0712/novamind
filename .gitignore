@@ -1,0 +1,27 @@
+# Python / 虚拟环境
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# 测试 / 缓存
+.pytest_cache/
+.mypy_cache/
+data/.pytest-tmp/
+
+# 模型权重（大文件，不入库；运行时按需下载）
+models/*
+!models/.gitkeep
+
+# 编辑器 / 系统
+.idea/
+.vscode/
+.DS_Store
+*.log
+install.log
+
+# 本地环境覆盖
+.env

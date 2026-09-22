@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NovaMind 控制台</title>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #141a23;
+    --panel-2: #1b2330;
+    --border: #232c3a;
+    --text: #e6edf3;
+    --muted: #8b97a7;
+    --accent: #4f9dff;
+    --accent-2: #2dd4bf;
+    --ok: #3fb950;
+    --warn: #f0883e;
+    --err: #f85149;
+    --radius: 10px;
+    --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 20px 18px 60px; }
+
+  /* Header */
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 18px; margin-bottom: 18px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+  }
+  .logo { width: 34px; height: 34px; color: var(--accent); flex: 0 0 auto; }
+  .title { font-size: 18px; font-weight: 600; letter-spacing: .3px; }
+  .subtitle { color: var(--muted); font-size: 12px; }
+  .spacer { flex: 1 1 auto; }
+
+  /* Connection bar */
+  .conn {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 12px 14px; margin-bottom: 18px;
+  }
+  .conn label { color: var(--muted); font-size: 12px; }
+  .conn input {
+    flex: 1 1 240px; min-width: 180px;
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-family: var(--mono); font-size: 13px;
+  }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    border: 1px solid var(--border);
+  }
+  .status-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .status-pill.ok { color: var(--ok); border-color: rgba(63,185,80,.4); background: rgba(63,185,80,.08); }
+  .status-pill.ok .dot { background: var(--ok); }
+  .status-pill.err { color: var(--err); border-color: rgba(248,81,73,.4); background: rgba(248,81,73,.08); }
+  .status-pill.err .dot { background: var(--err); }
+
+  /* Buttons */
+  button {
+    font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer;
+    border: 1px solid var(--border); background: var(--panel-2); color: var(--text);
+    border-radius: 8px; padding: 8px 14px;
+    display: inline-flex; align-items: center; gap: 7px; transition: background .15s, border-color .15s;
+  }
+  button:hover { background: #222c3b; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #06101f; }
+  button.primary:hover { background: #6cb0ff; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button svg { width: 16px; height: 16px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 16px; }
+  .tab {
+    padding: 9px 16px; border-radius: 8px; cursor: pointer; color: var(--muted);
+    border: 1px solid transparent; display: inline-flex; align-items: center; gap: 7px; font-weight: 600;
+  }
+  .tab svg { width: 18px; height: 18px; }
+  .tab.active { color: var(--text); background: var(--panel); border-color: var(--border); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  /* Cards / panels */
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px;
+  }
+  .panel + .panel { margin-top: 14px; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  label.field { display: block; color: var(--muted); font-size: 12px; margin: 0 0 6px; }
+  textarea, input.txt {
+    width: 100%; background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+    font-family: var(--mono); font-size: 13px; resize: vertical;
+  }
+  textarea { min-height: 96px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+
+  .health-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 4px; }
+  .metric { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .metric .k { color: var(--muted); font-size: 12px; }
+  .metric .v { font-size: 16px; font-weight: 600; margin-top: 4px; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
+  .badge.mock { color: var(--accent-2); background: rgba(45,212,191,.12); }
+  .badge.hash { color: var(--accent); background: rgba(79,157,255,.12); }
+  .badge.memory { color: var(--warn); background: rgba(240,136,62,.12); }
+  .badge.heuristic { color: #c792ea; background: rgba(199,146,234,.12); }
+
+  /* Result area */
+  .result { margin-top: 14px; }
+  .answer-box {
+    background: var(--panel-2); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    border-radius: 8px; padding: 14px 16px; white-space: pre-wrap; line-height: 1.7;
+  }
+  .hit, .src {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; margin-top: 10px;
+  }
+  .hit .meta, .src .meta { display: flex; gap: 10px; align-items: center; color: var(--muted); font-size: 12px; font-family: var(--mono); }
+  .score { color: var(--accent-2); font-weight: 700; }
+  .step { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px dashed var(--border); font-size: 13px; }
+  .step:first-child { border-top: none; }
+  .step .tool { background: rgba(79,157,255,.14); color: var(--accent); padding: 1px 8px; border-radius: 6px; font-family: var(--mono); font-size: 11px; }
+  .step .action { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+
+  table.grid { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+  table.grid th, table.grid td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); }
+  table.grid th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  .num { font-family: var(--mono); }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+    padding: 10px 18px; border-radius: 10px; font-size: 13px; box-shadow: 0 8px 30px rgba(0,0,0,.4);
+    opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 50;
+  }
+  .toast.show { opacity: 1; }
+  .toast.err { border-color: rgba(248,81,73,.5); }
+  .toast.ok { border-color: rgba(63,185,80,.5); }
+
+  .muted { color: var(--muted); }
+  .spinner { width: 15px; height: 15px; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 30px; }
+  code { font-family: var(--mono); background: var(--panel-2); padding: 1px 6px; border-radius: 5px; font-size: 12px; }
+</style>
+</head>
+<body>
+<!-- Reusable inline SVG icon symbols (stroke-based, no emoji) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M12 22V12"/><path d="M3 7l9 5 9-5"/><circle cx="12" cy="12" r="2"/>
+  </symbol>
+  <symbol id="i-health" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 12h4l2 5 4-12 2 7h6"/>
+  </symbol>
+  <symbol id="i-ingest" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 18v-6"/><path d="M9 15l3 3 3-3"/>
+  </symbol>
+  <symbol id="i-ask" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z"/><path d="M8.5 11h7"/><path d="M8.5 14h4"/>
+  </symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+  </symbol>
+  <symbol id="i-eval" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 11l2 2 4-4"/><rect x="4" y="4" width="16" height="16" rx="2"/>
+  </symbol>
+  <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/>
+  </symbol>
+  <symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>
+  </symbol>
+  <symbol id="i-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+    <path d="M21 12a9 9 0 1 1-6.2-8.6" opacity="0.9"/>
+  </symbol>
+</svg>
+
+<div class="wrap">
+  <header>
+    <svg class="logo"><use href="#i-logo"/></svg>
+    <div>
+      <div class="title">NovaMind 控制台</div>
+      <div class="subtitle">本地优先 · 模块化 AI 智能体系统 · 作者 晨星</div>
+    </div>
+    <div class="spacer"></div>
+    <span id="connStatus" class="status-pill"><span class="dot"></span>未连接</span>
+  </header>
+
+  <div class="conn">
+    <label for="baseUrl">API 地址</label>
+    <input id="baseUrl" value="http://127.0.0.1:8300" spellcheck="false" />
+    <button id="btnConnect"><svg><use href="#i-link"/></svg>连接测试</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-view="health"><svg><use href="#i-health"/></svg>概览</div>
+    <div class="tab" data-view="ingest"><svg><use href="#i-ingest"/></svg>接入</div>
+    <div class="tab" data-view="ask"><svg><use href="#i-ask"/></svg>问答</div>
+    <div class="tab" data-view="search"><svg><use href="#i-search"/></svg>检索</div>
+    <div class="tab" data-view="eval"><svg><use href="#i-eval"/></svg>评测</div>
+  </div>
+
+  <!-- HEALTH -->
+  <section class="view active" id="view-health">
+    <div class="panel">
+      <div class="field">系统状态</div>
+      <div id="healthBody" class="muted">点击「连接测试」加载后端状态。</div>
+    </div>
+  </section>
+
+  <!-- INGEST -->
+  <section class="view" id="view-ingest">
+    <div class="panel">
+      <label class="field" for="ingestText">文档文本（将自动分块、嵌入、入库并建 BM25 索引）</label>
+      <textarea id="ingestText" placeholder="粘贴一段知识文本，例如：NovaMind 是本地优先的模块化 AI 智能体系统，包含检索、重排与生成模块。"></textarea>
+      <div class="row">
+        <button class="primary" id="btnIngest"><svg><use href="#i-ingest"/></svg>接入文档</button>
+        <span class="hint">空文本或纯空白将被拒绝（400）。</span>
+      </div>
+      <div class="result" id="ingestResult"></div>
+    </div>
+  </section>
+
+  <!-- ASK -->
+  <section class="view" id="view-ask">
+    <div class="panel">
+      <label class="field" for="askQuery">提问</label>
+      <textarea id="askQuery" style="min-height:64px" placeholder="例如：NovaMind 由哪些核心模块组成？"></textarea>
+      <div class="row">
+        <button class="primary" id="btnAsk"><svg><use href="#i-send"/></svg>提问</button>
+        <span class="hint">默认离线 mock 后端会从检索上下文抽取要点作答；接入 Ollama 后切换为真实生成。</span>
+      </div>
+      <div class="result" id="askResult"></div>
+    </div>
+  </section>
+
+  <!-- SEARCH -->
+  <section class="view" id="view-search">
+    <div class="panel">
+      <label class="field" for="searchQuery">检索查询（稠密向量 + BM25 经 RRF 融合）</label>
+      <input class="txt" id="searchQuery" placeholder="例如：模块化 AI" />
+      <div class="row">
+        <button class="primary" id="btnSearch"><svg><use href="#i-search"/></svg>检索</button>
+        <span class="hint">top_k 默认 8。</span>
+      </div>
+      <div class="result" id="searchResult"></div>
+    </div>
+  </section>
+
+  <!-- EVAL -->
+  <section class="view" id="view-eval">
+    <div class="panel">
+      <label class="field">离线黄金集评测（context_recall / context_precision / faithfulness）</label>
+      <div class="row">
+        <button class="primary" id="btnEval"><svg><use href="#i-eval"/></svg>运行评测</button>
+        <span class="hint">基于内置 GOLDEN_CASES，无需外部数据即可验证检索与生成质量。</span>
+      </div>
+      <div class="result" id="evalResult"></div>
+    </div>
+  </section>
+
+  <footer>NovaMind · 端到端可运行 AI 系统 · 单文件控制台（零外部依赖）</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+  var baseUrl = "http://127.0.0.1:8300";
+
+  function $(id) { return document.getElementById(id); }
+
+  function toast(msg, kind) {
+    var t = $("toast");
+    t.textContent = msg;
+    t.className = "toast show" + (kind ? " " + kind : "");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { t.className = "toast"; }, 2600);
+  }
+
+  function setConn(ok, text) {
+    var el = $("connStatus");
+    el.className = "status-pill " + (ok ? "ok" : "err");
+    el.innerHTML = '<span class="dot"></span>' + (text || (ok ? "已连接" : "未连接"));
+  }
+
+  function svgUse(id) { return '<svg><use href="#' + id + '"/></svg>'; }
+
+  function busy(btn, on) {
+    if (!btn) return;
+    btn.disabled = on;
+    if (on) {
+      btn.dataset.label = btn.innerHTML;
+      btn.innerHTML = svgUse("i-spin") + '<span class="spinner"></span>';
+    } else if (btn.dataset.label) {
+      btn.innerHTML = btn.dataset.label;
+    }
+  }
+
+  async function api(path, opts) {
+    var res = await fetch(baseUrl.replace(/\/$/, "") + path, opts);
+    var text = await res.text();
+    var data = null;
+    try { data = text ? JSON.parse(text) : null; } catch (e) { data = text; }
+    if (!res.ok) {
+      var detail = (data && data.detail) ? data.detail : (typeof data === "string" ? data : res.statusText);
+      throw new Error(detail || ("HTTP " + res.status));
+    }
+    return data;
+  }
+
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // ---- Tabs ----
+  document.querySelectorAll(".tab").forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      document.querySelectorAll(".tab").forEach(function (t) { t.classList.remove("active"); });
+      document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+      tab.classList.add("active");
+      $("view-" + tab.dataset.view).classList.add("active");
+    });
+  });
+
+  // ---- Connect ----
+  $("btnConnect").addEventListener("click", async function () {
+    baseUrl = $("baseUrl").value.trim() || baseUrl;
+    busy(this, true);
+    try {
+      var h = await api("/health");
+      setConn(true, "已连接 · " + h.status);
+      renderHealth(h);
+      toast("连接成功：" + h.status, "ok");
+    } catch (e) {
+      setConn(false, "连接失败");
+      $("healthBody").innerHTML = '<span style="color:var(--err)">无法连接 ' + esc(baseUrl) + '：' + esc(e.message) + '</span>';
+      toast("连接失败：" + e.message, "err");
+    } finally { busy(this, false); }
+  });
+
+  function renderHealth(h) {
+    var b = h.backends || {};
+    function badge(v) { return '<span class="badge ' + esc(v) + '">' + esc(v) + '</span>'; }
+    $("healthBody").innerHTML =
+      '<div class="health-grid">' +
+        '<div class="metric"><div class="k">状态</div><div class="v" style="color:var(--ok)">' + esc(h.status) + '</div></div>' +
+        '<div class="metric"><div class="k">LLM</div><div class="v">' + badge(b.llm) + '</div></div>' +
+        '<div class="metric"><div class="k">Embed</div><div class="v">' + badge(b.embed) + '</div></div>' +
+        '<div class="metric"><div class="k">Vector</div><div class="v">' + badge(b.vector) + '</div></div>' +
+        '<div class="metric"><div class="k">Rerank</div><div class="v">' + badge(b.rerank) + '</div></div>' +
+      '</div>' +
+      '<div class="hint">切换真实引擎：启动 Ollama 后，以 <code>NM_LLM=ollama NM_EMBED=ollama NM_VECTOR=qdrant</code> 环境变量拉起服务即可，无需改动代码。</div>';
+  }
+
+  // ---- Ingest ----
+  $("btnIngest").addEventListener("click", async function () {
+    var text = $("ingestText").value;
+    busy(this, true);
+    try {
+      var r = await api("/ingest", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text })
+      });
+      $("ingestResult").innerHTML =
+        '<div class="hit"><div class="meta"><span>已接入</span><span>doc_id: ' + esc(r.doc_id) + '</span></div>' +
+        '生成分块数：<b>' + esc(r.ingested_chunks) + '</b></div>';
+      toast("接入成功，分块 " + r.ingested_chunks + " 个", "ok");
+    } catch (e) {
+      $("ingestResult").innerHTML = '<div class="hit" style="border-left:3px solid var(--err)"><span style="color:var(--err)">' + esc(e.message) + '</span></div>';
+      toast("接入失败：" + e.message, "err");
+    } finally { busy(this, false); }
+  });
+
+  // ---- Ask ----
+  $("btnAsk").addEventListener("click", async function () {
+    var q = $("askQuery").value.trim();
+    if (!q) { toast("请输入问题", "err"); return; }
+    busy(this, true);
+    try {
+      var r = await api("/ask", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: q })
+      });
+      var srcs = (r.sources || []).map(function (s) {
+        return '<div class="src"><div class="meta"><span>doc_id: ' + esc(s.doc_id) + '</span><span>chunk_id: ' + esc(s.chunk_id) + '</span><span class="score">score ' + esc(s.score) + '</span></div>' +
+          '<div style="margin-top:6px">' + esc(s.text) + '</div></div>';
+      }).join("");
+      var steps = (r.steps || []).map(function (s) {
+        return '<div class="step"><span class="tool">' + esc(s.tool || "—") + '</span><span>' + esc(s.detail) + '</span><span class="action">' + esc(s.action) + '</span></div>';
+      }).join("");
+      $("askResult").innerHTML =
+        '<div class="answer-box">' + esc(r.answer) + '</div>' +
+        (steps ? '<div class="field" style="margin-top:14px">执行步骤</div>' + steps : '') +
+        (srcs ? '<div class="field" style="margin-top:14px">引用来源</div>' + srcs : '<div class="hint">无检索命中（mock 后端可能未接入知识）。</div>');
+      toast("回答完成", "ok");
+    } catch (e) {
+      $("askResult").innerHTML = '<div class="answer-box" style="border-left-color:var(--err);color:var(--err)">' + esc(e.message) + '</div>';
+      toast("提问失败：" + e.message, "err");
+    } finally { busy(this, false); }
+  });
+
+  // ---- Search ----
+  $("btnSearch").addEventListener("click", async function () {
+    var q = $("searchQuery").value.trim();
+    if (!q) { toast("请输入查询", "err"); return; }
+    busy(this, true);
+    try {
+      var r = await api("/search", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: q, top_k: 8 })
+      });
+      var hits = (r.hits || []);
+      if (!hits.length) {
+        $("searchResult").innerHTML = '<div class="hint">未命中。请先在「接入」页添加知识文本。</div>';
+      } else {
+        $("searchResult").innerHTML = hits.map(function (h) {
+          return '<div class="hit"><div class="meta"><span>doc_id: ' + esc(h.doc_id) + '</span><span>chunk_id: ' + esc(h.chunk_id) + '</span><span class="score">score ' + esc(h.score) + '</span></div>' +
+            '<div style="margin-top:6px">' + esc(h.text) + '</div></div>';
+        }).join("");
+      }
+      toast("检索到 " + hits.length + " 条", "ok");
+    } catch (e) {
+      $("searchResult").innerHTML = '<div class="hit" style="border-left:3px solid var(--err)"><span style="color:var(--err)">' + esc(e.message) + '</span></div>';
+      toast("检索失败：" + e.message, "err");
+    } finally { busy(this, false); }
+  });
+
+  // ---- Eval ----
+  $("btnEval").addEventListener("click", async function () {
+    busy(this, true);
+    try {
+      var r = await api("/evaluate", { method: "POST" });
+      var rows = (r.cases || []).map(function (c) {
+        return '<tr><td>' + esc(c.query) + '</td>' +
+          '<td class="num">' + (c.context_recall != null ? c.context_recall.toFixed(3) : "—") + '</td>' +
+          '<td class="num">' + (c.context_precision != null ? c.context_precision.toFixed(3) : "—") + '</td>' +
+          '<td class="num">' + (c.faithfulness != null ? c.faithfulness.toFixed(3) : "—") + '</td>' +
+          '<td>' + (c.answered ? '<span style="color:var(--ok)">yes</span>' : '<span style="color:var(--err)">no</span>') + '</td></tr>';
+      }).join("");
+      $("evalResult").innerHTML =
+        '<table class="grid"><thead><tr><th>Query</th><th>ctx_recall</th><th>ctx_precision</th><th>faithfulness</th><th>answered</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+        '<div class="health-grid" style="margin-top:14px">' +
+          '<div class="metric"><div class="k">avg context_recall</div><div class="v">' + (r.avg_context_recall != null ? r.avg_context_recall.toFixed(3) : "—") + '</div></div>' +
+          '<div class="metric"><div class="k">avg faithfulness</div><div class="v">' + (r.avg_faithfulness != null ? r.avg_faithfulness.toFixed(3) : "—") + '</div></div>' +
+        '</div>';
+      toast("评测完成", "ok");
+    } catch (e) {
+      $("evalResult").innerHTML = '<div class="hint" style="color:var(--err)">' + esc(e.message) + '</div>';
+      toast("评测失败：" + e.message, "err");
+    } finally { busy(this, false); }
+  });
+})();
+</script>
+</body>
+</html>

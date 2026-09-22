@@ -1,0 +1,16 @@
+services:
+  novamind:
+    build: .
+    ports:
+      - "8300:8300"
+    environment:
+      NM_LLM: "${NM_LLM:-mock}"
+      NM_EMBED: "${NM_EMBED:-hash}"
+      NM_VECTOR: "${NM_VECTOR:-memory}"
+      NM_RERANK: "${NM_RERANK:-heuristic}"
+      NM_OLLAMA_URL: "${NM_OLLAMA_URL:-http://host.docker.internal:11434}"
+      NM_LLM_MODEL: "${NM_LLM_MODEL:-qwen2.5:3b}"
+      NM_EMBED_MODEL: "${NM_EMBED_MODEL:-nomic-embed-text}"
+    volumes:
+      - ./models:/app/models
+    restart: unless-stopped

@@ -1,0 +1,198 @@
+openapi: "3.0.3"
+info:
+  title: NovaMind API
+  description: 本地优先模块化 AI 智能体系统（RAG + 工具编排）。默认离线兜底，无需外部服务即可运行。
+  version: "1.0.0"
+  contact:
+    name: 晨星
+servers:
+  - url: http://127.0.0.1:8300
+    description: 本地默认服务
+paths:
+  /health:
+    get:
+      summary: 系统健康检查与后端状态
+      operationId: health
+      responses:
+        "200":
+          description: 系统就绪
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthOut"
+  /ingest:
+    post:
+      summary: 接入文本（自动分块、嵌入、入库、建 BM25）
+      operationId: ingest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IngestRequest"
+      responses:
+        "200":
+          description: 接入成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ingested_chunks:
+                    type: integer
+                  doc_id:
+                    type: string
+        "400":
+          description: 空文档/非法输入
+  /ask:
+    post:
+      summary: 问答（检索 → 重排 → 工具 → 生成）
+      operationId: ask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AskRequest"
+      responses:
+        "200":
+          description: 答案与证据
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AskResponse"
+        "502":
+          description: 后端不可用
+  /search:
+    post:
+      summary: 混合检索（仅返回候选命中）
+      operationId: search
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchRequest"
+      responses:
+        "200":
+          description: 检索命中
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hits:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/HitOut"
+  /evaluate:
+    post:
+      summary: 离线黄金集评测
+      operationId: evaluate
+      responses:
+        "200":
+          description: 评测报告
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cases:
+                    type: array
+                    items:
+                      type: object
+                  avg_context_recall:
+                    type: number
+                  avg_faithfulness:
+                    type: number
+components:
+  schemas:
+    HealthOut:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        backends:
+          type: object
+          properties:
+            llm:
+              type: string
+            embed:
+              type: string
+            vector:
+              type: string
+            rerank:
+              type: string
+    IngestRequest:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+        doc_id:
+          type: string
+          nullable: true
+    AskRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+        top_k:
+          type: integer
+          nullable: true
+    SourceOut:
+      type: object
+      properties:
+        chunk_id:
+          type: string
+        doc_id:
+          type: string
+        text:
+          type: string
+        score:
+          type: number
+    StepOut:
+      type: object
+      properties:
+        action:
+          type: string
+        detail:
+          type: string
+        tool:
+          type: string
+          nullable: true
+    AskResponse:
+      type: object
+      properties:
+        answer:
+          type: string
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/SourceOut"
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/StepOut"
+    SearchRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+        top_k:
+          type: integer
+          default: 8
+    HitOut:
+      type: object
+      properties:
+        chunk_id:
+          type: string
+        doc_id:
+          type: string
+        text:
+          type: string
+        score:
+          type: number
