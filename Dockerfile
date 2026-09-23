@@ -12,11 +12,11 @@ WORKDIR /app
 
 # 依赖层（利用构建缓存）
 COPY requirements.txt pyproject.toml ./
-RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir -e . --no-deps
+RUN pip install --no-cache-dir -r requirements.txt
 
-# 源码层
+# 源码层：editable 安装需要 src/ 与 README 已就位，故先 COPY 再安装。
 COPY . .
+RUN pip install --no-cache-dir -e . --no-deps
 
 EXPOSE 8300
 CMD ["sh", "-c", "uvicorn novamind.api.app:app --host 0.0.0.0 --port 8300"]
