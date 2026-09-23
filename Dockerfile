@@ -1,5 +1,5 @@
 # NovaMind 多阶段构建镜像：烘焙全部依赖（含 onnxruntime / qdrant-client），默认离线兜底。
-FROM python:3.12-slim
+FROM python:3.13-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
