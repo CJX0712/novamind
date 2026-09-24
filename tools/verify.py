@@ -9,7 +9,9 @@ import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-VENV_PY = os.path.join(ROOT, ".venv", "Scripts", "python.exe")
+# 用当前解释器，避免硬编码平台专属 venv 路径
+# (Windows: .venv/Scripts/python.exe, POSIX: .venv/bin/python)
+VENV_PY = sys.executable
 BASE_TEMP = os.path.join(ROOT, "data", ".pytest-tmp")
 
 
